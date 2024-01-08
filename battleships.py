@@ -2,16 +2,13 @@ from typing import NamedTuple
 import random
 
 class Ship(NamedTuple):
-    # X and Y anchored to the top-left
+    # X and Y anchored to the top-left and are 1-based indexed
     x: int
     y: int
-    
     isHorizontal: bool
     size: int
-    isAlive = True
 
-
-ship_sizes = {
+ship_classes = {
     "carrier":    5,
     "battleship": 4,
     "cruiser":    3,
@@ -19,12 +16,16 @@ ship_sizes = {
     "destroyer":  2
 }
 
-# Bool whether two ranged intersect
 def canIntersect(a_start, a_stop, b_start, b_stop):
+    ''' Determines whether two ranges "a" and "b" intersect. '''
+    
     return a_start <= b_stop and b_start <= a_stop
 
 def generateShips():
-    for name, size in ship_sizes.items():
+    ''' Place ships onto the board (logically). '''
+    
+    for name, size in ship_classes.items():
+        # Keep generating a new ship for the currently given class...
         while True:
             isHorizontal = random.choice((True, False))
             x = 1+random.randrange(0, 8-(size if isHorizontal else 0))
@@ -38,11 +39,14 @@ def generateShips():
                 
                 if horizontalIntercept or verticalIntercept or perpendicularIntercept1 or perpendicularIntercept2:
                     break
+            # ...until it is colliding with no other existing ship
             else:
                 break
         ships[name] = Ship(x, y, isHorizontal, size)
 
 def populateBoard():
+    ''' Draw O tiles where there are ships on the board. '''
+    
     for name, ship in ships.items():
         if ship.isHorizontal:
             row = board[ship.y-1]
@@ -55,15 +59,21 @@ def populateBoard():
                 board[ship.y - 1 + i] = row
 
 def printBoard():
+    ''' Hide the O tiles before rendering the board. '''
+    
     for line in board:
         # print(line) to see the ships
         print(line.replace("O", "."))
 
 def getXY():
-    x, y = input("Type in the (x, y) coordinates like so: 3 5\n").split()
+    ''' Unvalidated and crash prone method to retrieve coordinates. '''
+    
+    x, y = input("Type out the column and row like so: 3 5\n").split()
     return int(x), int(y)
 
 def setBoardTile(x, y, char):
+    ''' Update an individual tile. Use X for hit and v for miss. '''
+    
     board[y-1] = board[y-1][:x-1] + char + board[y-1][x:]
 
 def clearScreen():
@@ -89,12 +99,14 @@ while True:
     if board[y-1][x-1] in "Xv":
         messageLog.append("You have already tried hitting that tile.")
     elif board[y-1][x-1] == ".":
-        messageLog.append("You hit nothing.")
         setBoardTile(x, y, "v")
+        messageLog.append("You hit nothing.")
     else:
         setBoardTile(x, y, "X")
         messageLog.append("You hit something!")
 
+        # Remove a tile from a ship, then check all ships to see if one of them had all their tiles cleared
+        # from the board.
         for name, ship in ships.items():
             if ship.isHorizontal:
                 if "O" not in board[ship.y-1][ship.x-1:ship.x+ship.size]:
